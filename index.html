@@ -361,6 +361,8 @@ function hitIndex(y) {
 }
 
 function onTouchStart(e, idx) {
+  // Don't start drag from action buttons — let click handlers work
+  if (e.target.closest('.card-actions')) return;
   startY = e.touches[0].clientY;
   pressTimer = setTimeout(() => {
     dragIdx = idx; dropIdx = idx; dragging = true;
