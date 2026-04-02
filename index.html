@@ -390,6 +390,7 @@ function onTouchMove(e) {
 
 function onTouchEnd() {
   clearTimeout(pressTimer);
+  const wasDragging = dragging;
   if (dragging && dragIdx !== null && dropIdx !== null && dragIdx !== dropIdx) {
     const lst = [...getList()];
     const [item] = lst.splice(dragIdx, 1);
@@ -400,7 +401,8 @@ function onTouchEnd() {
   document.body.style.overflow = '';
   document.getElementById('footer').innerHTML = 'TAP 🔊 TO HEAR · TAP COPY TO PASTE';
   document.getElementById('cat-hint').textContent = 'hold & drag to reorder';
-  renderList();
+  // Only re-render if we were dragging — otherwise it destroys buttons before click fires
+  if (wasDragging) renderList();
 }
 
 // Service Worker registration
