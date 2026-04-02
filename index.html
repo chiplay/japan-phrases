@@ -51,7 +51,7 @@
     .card { background: #fff; border-radius: 12px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left-width: 4px; border-left-style: solid; border-top: 3px solid transparent; position: relative; touch-action: pan-y; transition: transform 0.15s, opacity 0.15s, border 0.1s, margin 0.15s; }
     .card.dragging { transform: scale(1.025) rotate(0.5deg); opacity: 0.93; z-index: 5; touch-action: none; transition: box-shadow 0.1s; }
     .card.drop-target { border-top-width: 3px; border-top-style: solid; margin-bottom: 18px; }
-    .drag-grip { position: absolute; top: 8px; right: 10px; font-size: 15px; line-height: 1; letter-spacing: 1px; color: #d4c4a8; transition: color 0.2s; }
+    .drag-grip { position: absolute; top: 0; right: 0; padding: 10px 12px; font-size: 15px; line-height: 1; letter-spacing: 1px; color: #d4c4a8; transition: color 0.2s; cursor: grab; }
     .card.dragging .drag-grip { color: var(--accent); }
     .card-body { padding: 14px 28px 10px 14px; }
     .card-en { font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; color: #5a4a3a; }
@@ -260,9 +260,8 @@ function renderList() {
   container.innerHTML = list.map((phrase, idx) => `
     <div class="card" id="card-${idx}" data-idx="${idx}"
       style="border-left-color:${accent()}"
-      ontouchstart="onTouchStart(event,${idx})"
     >
-      <div class="drag-grip">⠿</div>
+      <div class="drag-grip" ontouchstart="onTouchStart(event,${idx})">⠿</div>
       <div class="card-body">
         <div class="card-en">${phrase.en}</div>
         <div class="card-ja">${phrase.ja}</div>
@@ -276,9 +275,7 @@ function renderList() {
     </div>
   `).join('');
 
-  container.ontouchmove = onTouchMove;
-  container.ontouchend = onTouchEnd;
-  container.ontouchcancel = onTouchEnd;
+  // touch move/end are added to document only when drag starts (see onTouchStart)
 }
 
 // Speak
@@ -361,9 +358,12 @@ function hitIndex(y) {
 }
 
 function onTouchStart(e, idx) {
-  // Don't start drag from action buttons — let click handlers work
-  if (e.target.closest('.card-actions')) return;
+  e.stopPropagation();
   startY = e.touches[0].clientY;
+  // Attach move/end to document so they work everywhere during drag
+  document.addEventListener('touchmove', onTouchMove, { passive: false });
+  document.addEventListener('touchend', onTouchEnd);
+  document.addEventListener('touchcancel', onTouchEnd);
   pressTimer = setTimeout(() => {
     dragIdx = idx; dropIdx = idx; dragging = true;
     if (navigator.vibrate) navigator.vibrate(50);
@@ -390,19 +390,24 @@ function onTouchMove(e) {
 
 function onTouchEnd() {
   clearTimeout(pressTimer);
-  const wasDragging = dragging;
+  // Clean up document-level listeners
+  document.removeEventListener('touchmove', onTouchMove);
+  document.removeEventListener('touchend', onTouchEnd);
+  document.removeEventListener('touchcancel', onTouchEnd);
   if (dragging && dragIdx !== null && dropIdx !== null && dragIdx !== dropIdx) {
     const lst = [...getList()];
     const [item] = lst.splice(dragIdx, 1);
     lst.splice(dropIdx, 0, item);
     setList(lst);
   }
+  const wasDragging = dragging;
   dragIdx = null; dropIdx = null; dragging = false;
   document.body.style.overflow = '';
-  document.getElementById('footer').innerHTML = 'TAP 🔊 TO HEAR · TAP COPY TO PASTE';
-  document.getElementById('cat-hint').textContent = 'hold & drag to reorder';
-  // Only re-render if we were dragging — otherwise it destroys buttons before click fires
-  if (wasDragging) renderList();
+  if (wasDragging) {
+    document.getElementById('footer').innerHTML = 'TAP 🔊 TO HEAR · TAP COPY TO PASTE';
+    document.getElementById('cat-hint').textContent = 'hold & drag to reorder';
+    renderList();
+  }
 }
 
 // Service Worker registration
