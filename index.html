@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Japan Phrases">
+  <meta name="theme-color" content="#1a1410">
+  <title>Japan Phrases 日本語</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { background: #f5f0e8; font-family: 'Noto Serif JP', Georgia, serif; overscroll-behavior: none; }
+    #app { max-width: 430px; margin: 0 auto; min-height: 100vh; position: relative; user-select: none; }
+
+    /* Header */
+    #header { background: #1a1410; padding: 20px 20px 0; position: sticky; top: 0; z-index: 10; }
+    #header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+    #header-sub { color: #c8a87a; font-size: 11px; letter-spacing: 3px; font-family: monospace; text-transform: uppercase; }
+    #header h1 { color: #f5f0e8; font-size: 22px; font-weight: 700; letter-spacing: 1px; }
+    #add-btn { border: none; border-radius: 20px; padding: 7px 14px; font-weight: 700; font-size: 13px; cursor: pointer; letter-spacing: 0.5px; }
+
+    /* Tabs */
+    #tabs { display: flex; gap: 4px; overflow-x: auto; margin-top: 14px; scrollbar-width: none; }
+    #tabs::-webkit-scrollbar { display: none; }
+    .tab-btn { background: transparent; color: #8a7a6a; border: none; border-radius: 8px 8px 0 0; padding: 8px 12px; font-size: 18px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+    .tab-btn.active { color: #1a1410; }
+
+    /* Category bar */
+    #cat-bar { padding: 8px 20px; display: flex; align-items: center; gap: 8px; }
+    #cat-bar span.name { font-weight: 700; font-size: 15px; color: #1a1410; }
+    #cat-bar span.hint { font-size: 11px; margin-left: auto; font-style: italic; color: rgba(26,20,16,0.4); }
+
+    /* Add form */
+    #add-form { display: none; margin: 16px; border-radius: 12px; padding: 16px; }
+    #add-form.visible { display: block; }
+    #add-form h3 { font-weight: 700; margin-bottom: 12px; color: #1a1410; font-size: 15px; }
+    #add-form input { display: block; width: 100%; margin-bottom: 8px; padding: 9px 12px; border: 1px solid #d4c4a8; border-radius: 8px; font-size: 14px; font-family: inherit; background: #fffdf8; }
+    .form-btns { display: flex; gap: 8px; }
+    .form-btns button { flex: 1; border: none; border-radius: 8px; padding: 10px; font-weight: 700; cursor: pointer; font-size: 14px; }
+    #save-btn { color: #1a1410; }
+    #cancel-btn { background: #e8dece; color: #5a4a3a; }
+
+    /* Phrase list */
+    #phrase-list { padding: 12px 16px 80px; }
+    .empty-state { text-align: center; color: #a89880; margin-top: 60px; font-size: 15px; }
+    .empty-state .emoji { font-size: 40px; margin-bottom: 12px; }
+
+    /* Cards */
+    .card { background: #fff; border-radius: 12px; margin-bottom: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left-width: 4px; border-left-style: solid; border-top: 3px solid transparent; position: relative; touch-action: pan-y; transition: transform 0.15s, opacity 0.15s, border 0.1s, margin 0.15s; }
+    .card.dragging { transform: scale(1.025) rotate(0.5deg); opacity: 0.93; z-index: 5; touch-action: none; transition: box-shadow 0.1s; }
+    .card.drop-target { border-top-width: 3px; border-top-style: solid; margin-bottom: 18px; }
+    .drag-grip { position: absolute; top: 8px; right: 10px; font-size: 15px; line-height: 1; letter-spacing: 1px; color: #d4c4a8; transition: color 0.2s; }
+    .card.dragging .drag-grip { color: var(--accent); }
+    .card-body { padding: 14px 28px 10px 14px; }
+    .card-en { font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 4px; color: #5a4a3a; }
+    .card-ja { font-size: 22px; color: #1a1410; line-height: 1.3; margin-bottom: 4px; }
+    .card-ro { font-size: 13px; color: #8a7a6a; font-style: italic; }
+    .card-actions { display: flex; border-top: 1px solid #f0e8d8; }
+    .card-actions button { border: none; padding: 10px; cursor: pointer; transition: all 0.15s; background: transparent; }
+    .btn-speak { flex: 1; font-size: 18px; border-right: 1px solid #f0e8d8 !important; color: #8a7a6a; }
+    .btn-speak.active { color: #1a1410; }
+    .btn-copy { flex: 1; font-size: 14px; font-weight: 600; color: #8a7a6a; border-right: 1px solid #f0e8d8 !important; }
+    .btn-copy.copied { background: #e8f4e8 !important; color: #4a8a4a; }
+    .btn-delete { flex: 0 0 44px; font-size: 16px; color: #c8a09a; }
+
+    /* Confirm modal */
+    #confirm-overlay { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.55); align-items: center; justify-content: center; padding: 24px; }
+    #confirm-overlay.visible { display: flex; }
+    #confirm-box { background: #fff; border-radius: 16px; padding: 24px; max-width: 340px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); border-top: 4px solid #c0392b; text-align: center; }
+    #confirm-box .icon { font-size: 28px; margin-bottom: 8px; }
+    #confirm-box h3 { font-size: 16px; color: #1a1410; margin-bottom: 6px; }
+    #confirm-box .del-en { font-size: 13px; color: #5a4a3a; margin-bottom: 4px; }
+    #confirm-box .del-ja { font-size: 18px; color: #1a1410; margin-bottom: 18px; }
+    #confirm-box .confirm-btns { display: flex; gap: 10px; }
+    #confirm-box .confirm-btns button { flex: 1; border: none; border-radius: 10px; padding: 12px; font-weight: 700; cursor: pointer; font-size: 14px; }
+    #btn-keep { background: #e8dece; color: #5a4a3a; }
+    #btn-confirm-delete { background: #c0392b; color: #fff; }
+
+    /* Footer */
+    #footer { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: #1a1410; padding: 10px 20px; text-align: center; font-size: 11px; letter-spacing: 1px; color: #6a5a4a; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div id="header-top">
+      <div>
+        <div id="header-sub" style="color: #c8a87a;">日本語</div>
+        <h1>Japan Phrases</h1>
+      </div>
+      <button id="add-btn" onclick="toggleAddForm()" style="background: #c8a87a; color: #1a1410;">+ Add</button>
+    </div>
+    <div id="tabs"></div>
+  </div>
+
+  <div id="cat-bar" style="background: #c8a87a;">
+    <span id="cat-icon" style="font-size:18px">🙏</span>
+    <span class="name" id="cat-name">Greetings</span>
+    <span class="hint" id="cat-hint">hold &amp; drag to reorder</span>
+  </div>
+
+  <div id="add-form" style="border: 1px solid #c8a87a; background: #fff8ee;">
+    <h3>Add a Phrase</h3>
+    <input id="input-en" placeholder="English">
+    <input id="input-ja" placeholder="Japanese (日本語)">
+    <input id="input-ro" placeholder="Romaji (phonetic)">
+    <div class="form-btns">
+      <button id="save-btn" onclick="savePhrase()" style="background: #c8a87a;">Save</button>
+      <button id="cancel-btn" onclick="toggleAddForm()">Cancel</button>
+    </div>
+  </div>
+
+  <div id="confirm-overlay">
+    <div id="confirm-box">
+      <div class="icon">🗑️</div>
+      <h3>Delete this phrase?</h3>
+      <div class="del-en" id="del-en-text"></div>
+      <div class="del-ja" id="del-ja-text"></div>
+      <div class="confirm-btns">
+        <button id="btn-keep" onclick="closeConfirm()">Keep</button>
+        <button id="btn-confirm-delete" onclick="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="phrase-list"></div>
+
+  <div id="footer">TAP 🔊 TO HEAR · TAP COPY TO PASTE</div>
+</div>
+
+<script>
+const PHRASES = {
+  "Greetings": [
+    { en: "Good morning", ja: "おはようございます", ro: "Ohayō gozaimasu" },
+    { en: "Good afternoon / Hello", ja: "こんにちは", ro: "Konnichiwa" },
+    { en: "Good evening", ja: "こんばんは", ro: "Konbanwa" },
+    { en: "Thank you very much", ja: "ありがとうございます", ro: "Arigatō gozaimasu" },
+    { en: "Excuse me / Sorry", ja: "すみません", ro: "Sumimasen" },
+    { en: "Please (asking a favor)", ja: "お願いします", ro: "Onegaishimasu" },
+    { en: "Yes", ja: "はい", ro: "Hai" },
+    { en: "No", ja: "いいえ", ro: "Iie" },
+    { en: "I don't understand", ja: "わかりません", ro: "Wakarimasen" },
+    { en: "Do you speak English?", ja: "英語を話せますか？", ro: "Eigo o hanasemasu ka?" },
+  ],
+  "Restaurant": [
+    { en: "A table for one / two please", ja: "一人／二人です", ro: "Hitori / Futari desu" },
+    { en: "A table for three, please", ja: "三人です", ro: "San-nin desu" },
+    { en: "A table for four, please", ja: "四人です", ro: "Yo-nin desu" },
+    { en: "The menu, please", ja: "メニューをください", ro: "Menyū o kudasai" },
+    { en: "I'll have this one", ja: "これをください", ro: "Kore o kudasai" },
+    { en: "What do you recommend?", ja: "おすすめは何ですか？", ro: "Osusume wa nan desu ka?" },
+    { en: "It's delicious!", ja: "おいしい！", ro: "Oishii!" },
+    { en: "It looks delicious!", ja: "おいしそう！", ro: "Oishisō!" },
+    { en: "The check, please", ja: "お会計をお願いします", ro: "Okaikei o onegaishimasu" },
+    { en: "One check please / Together", ja: "一緒にお願いします", ro: "Issho ni onegaishimasu" },
+    { en: "No meat please", ja: "肉なしでお願いします", ro: "Niku nashi de onegaishimasu" },
+    { en: "I'm allergic to...", ja: "…アレルギーがあります", ro: "...arerugī ga arimasu" },
+    { en: "Water, please", ja: "お水をください", ro: "Omizu o kudasai" },
+    { en: "Very tasty, thank you", ja: "とてもおいしかったです", ro: "Totemo oishikatta desu" },
+  ],
+  "Transportation": [
+    { en: "Where is the station?", ja: "駅はどこですか？", ro: "Eki wa doko desu ka?" },
+    { en: "One ticket to [place]", ja: "[場所]まで一枚", ro: "[basho] made ichimai" },
+    { en: "Which platform?", ja: "何番線ですか？", ro: "Nanban-sen desu ka?" },
+    { en: "Does this go to [place]?", ja: "これは[場所]に行きますか？", ro: "Kore wa [basho] ni ikimasu ka?" },
+    { en: "Please take me to this address", ja: "この住所まで行ってください", ro: "Kono jūsho made itte kudasai" },
+    { en: "How much is the fare?", ja: "いくらですか？", ro: "Ikura desu ka?" },
+    { en: "Where is the train?", ja: "電車はどこですか？", ro: "Densha wa doko desu ka?" },
+    { en: "Turn right / left", ja: "右／左に曲がってください", ro: "Migi / Hidari ni magatte kudasai" },
+  ],
+  "Shopping": [
+    { en: "How much is this?", ja: "これはいくらですか？", ro: "Kore wa ikura desu ka?" },
+    { en: "Do you have a smaller / larger size?", ja: "もっと小さい／大きいサイズはありますか？", ro: "Motto chiisai / ōkii saizu wa arimasu ka?" },
+    { en: "Can I try this on?", ja: "試着できますか？", ro: "Shichaku dekimasu ka?" },
+    { en: "I'll take this", ja: "これにします", ro: "Kore ni shimasu" },
+    { en: "Do you accept credit cards?", ja: "クレジットカードは使えますか？", ro: "Kurejitto kādo wa tsukaemasu ka?" },
+    { en: "Can I get a bag?", ja: "袋をもらえますか？", ro: "Fukuro o moraemasu ka?" },
+    { en: "Do you have tax-free shopping?", ja: "免税できますか？", ro: "Menzei dekimasu ka?" },
+    { en: "Just looking, thank you", ja: "見ているだけです", ro: "Mite iru dake desu" },
+  ],
+  "Hotel": [
+    { en: "I have a reservation", ja: "予約があります", ro: "Yoyaku ga arimasu" },
+    { en: "Check in / Check out", ja: "チェックイン／チェックアウト", ro: "Chekkuin / Chekkuauto" },
+    { en: "Where is my room?", ja: "部屋はどこですか？", ro: "Heya wa doko desu ka?" },
+    { en: "Do you have WiFi?", ja: "WiFiはありますか？", ro: "WiFi ga arimasu ka?" },
+    { en: "Can I have a wake-up call at 7?", ja: "7時にモーニングコールをお願いします", ro: "Shichi-ji ni mōningu kōru o onegaishimasu" },
+    { en: "More towels please", ja: "タオルをもっとください", ro: "Taoru o motto kudasai" },
+    { en: "The room is too cold / hot", ja: "部屋が寒すぎ／暑すぎます", ro: "Heya ga samusug / atsusugi masu" },
+    { en: "Where is the elevator?", ja: "エレベーターはどこですか？", ro: "Erebētā wa doko desu ka?" },
+  ],
+};
+
+const ICONS = { "Greetings":"🙏","Restaurant":"🍜","Transportation":"🚄","Shopping":"🛍️","Hotel":"🏨","My Phrases":"⭐" };
+const COLORS = { "Greetings":"#c8a87a","Restaurant":"#e07b5c","Transportation":"#5b8fa8","Shopping":"#7a9e6e","Hotel":"#8b7bb5","My Phrases":"#d4a853" };
+
+// State
+let activeCategory = "Greetings";
+let phraseData = {};
+let myPhrases = [];
+let deleteTarget = null;
+let dragIdx = null, dropIdx = null, dragging = false;
+let pressTimer = null, startY = 0;
+
+// Init phrase data with ids
+function init() {
+  for (const [cat, list] of Object.entries(PHRASES)) {
+    phraseData[cat] = list.map((p, i) => ({ ...p, id: `${cat}-${i}` }));
+  }
+  renderTabs();
+  setCategory("Greetings");
+}
+
+function getList() { return activeCategory === "My Phrases" ? myPhrases : (phraseData[activeCategory] || []); }
+function setList(list) {
+  if (activeCategory === "My Phrases") myPhrases = list;
+  else phraseData[activeCategory] = list;
+}
+
+function accent() { return COLORS[activeCategory] || "#c8a87a"; }
+
+function setCategory(cat) {
+  activeCategory = cat;
+  const a = accent();
+  document.documentElement.style.setProperty('--accent', a);
+  document.getElementById('add-btn').style.background = a;
+  document.getElementById('add-btn').style.color = '#1a1410';
+  document.getElementById('cat-bar').style.background = a;
+  document.getElementById('cat-icon').textContent = ICONS[cat];
+  document.getElementById('cat-name').textContent = cat;
+  document.getElementById('header-sub').style.color = a;
+  document.getElementById('add-form').style.borderColor = a;
+  document.getElementById('add-form').style.background = '#fff8ee';
+  document.getElementById('save-btn').style.background = a;
+  // Update tab highlights
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    const isActive = btn.dataset.cat === cat;
+    btn.style.background = isActive ? a : 'transparent';
+    btn.style.color = isActive ? '#1a1410' : '#8a7a6a';
+  });
+  renderList();
+}
+
+function renderTabs() {
+  const tabs = document.getElementById('tabs');
+  const cats = [...Object.keys(phraseData), "My Phrases"];
+  tabs.innerHTML = cats.map(cat =>
+    `<button class="tab-btn${cat===activeCategory?' active':''}" data-cat="${cat}" onclick="setCategory('${cat}')" title="${cat}">${ICONS[cat]}</button>`
+  ).join('');
+}
+
+function renderList() {
+  const list = getList();
+  const container = document.getElementById('phrase-list');
+  if (list.length === 0) {
+    container.innerHTML = `<div class="empty-state"><div class="emoji">⭐</div>No phrases yet.<br>Tap <strong>+ Add</strong> to save your own.</div>`;
+    return;
+  }
+  container.innerHTML = list.map((phrase, idx) => `
+    <div class="card" id="card-${idx}" data-idx="${idx}"
+      style="border-left-color:${accent()}"
+      ontouchstart="onTouchStart(event,${idx})"
+    >
+      <div class="drag-grip">⠿</div>
+      <div class="card-body">
+        <div class="card-en">${phrase.en}</div>
+        <div class="card-ja">${phrase.ja}</div>
+        ${phrase.ro ? `<div class="card-ro">${phrase.ro}</div>` : ''}
+      </div>
+      <div class="card-actions">
+        <button class="btn-speak" id="speak-${idx}" onclick="handleSpeak(${idx})" title="Listen">🔊</button>
+        <button class="btn-copy" id="copy-${idx}" onclick="handleCopy(${idx})" title="Copy">Copy</button>
+        <button class="btn-delete" onclick="askDelete(${idx})" title="Delete">🗑</button>
+      </div>
+    </div>
+  `).join('');
+
+  container.ontouchmove = onTouchMove;
+  container.ontouchend = onTouchEnd;
+  container.ontouchcancel = onTouchEnd;
+}
+
+// Speak
+function handleSpeak(idx) {
+  if (dragging) return;
+  const phrase = getList()[idx];
+  if ('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance(phrase.ja);
+    u.lang = 'ja-JP'; u.rate = 0.85;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }
+  const btn = document.getElementById(`speak-${idx}`);
+  btn.style.background = accent(); btn.style.color = '#1a1410';
+  setTimeout(() => { btn.style.background=''; btn.style.color='#8a7a6a'; }, 2000);
+}
+
+// Copy
+function handleCopy(idx) {
+  if (dragging) return;
+  const phrase = getList()[idx];
+  navigator.clipboard?.writeText(phrase.ja);
+  const btn = document.getElementById(`copy-${idx}`);
+  btn.textContent = '✓ Copied'; btn.style.background = '#e8f4e8'; btn.style.color = '#4a8a4a';
+  setTimeout(() => { btn.textContent='Copy'; btn.style.background=''; btn.style.color='#8a7a6a'; }, 1500);
+}
+
+// Add
+function toggleAddForm() {
+  const form = document.getElementById('add-form');
+  form.classList.toggle('visible');
+}
+function savePhrase() {
+  const en = document.getElementById('input-en').value.trim();
+  const ja = document.getElementById('input-ja').value.trim();
+  const ro = document.getElementById('input-ro').value.trim();
+  if (!en || !ja) return;
+  myPhrases.push({ en, ja, ro, id: `my-${Date.now()}` });
+  document.getElementById('input-en').value = '';
+  document.getElementById('input-ja').value = '';
+  document.getElementById('input-ro').value = '';
+  document.getElementById('add-form').classList.remove('visible');
+  setCategory('My Phrases');
+  renderTabs();
+}
+
+// Delete
+function askDelete(idx) {
+  if (dragging) return;
+  deleteTarget = idx;
+  const phrase = getList()[idx];
+  document.getElementById('del-en-text').textContent = phrase.en;
+  document.getElementById('del-ja-text').textContent = phrase.ja;
+  document.getElementById('confirm-overlay').classList.add('visible');
+}
+function closeConfirm() {
+  deleteTarget = null;
+  document.getElementById('confirm-overlay').classList.remove('visible');
+}
+function confirmDelete() {
+  if (deleteTarget === null) return;
+  const next = getList().filter((_, i) => i !== deleteTarget);
+  setList(next);
+  closeConfirm();
+  renderList();
+}
+
+// Drag helpers
+function getCardEls() { return Array.from(document.querySelectorAll('.card')); }
+function hitIndex(y) {
+  const cards = getCardEls();
+  for (let i = 0; i < cards.length; i++) {
+    const r = cards[i].getBoundingClientRect();
+    if (y >= r.top && y <= r.bottom) return i;
+  }
+  if (cards.length && y > cards[cards.length-1].getBoundingClientRect().bottom) return cards.length - 1;
+  return null;
+}
+
+function onTouchStart(e, idx) {
+  startY = e.touches[0].clientY;
+  pressTimer = setTimeout(() => {
+    dragIdx = idx; dropIdx = idx; dragging = true;
+    if (navigator.vibrate) navigator.vibrate(50);
+    const card = document.getElementById(`card-${idx}`);
+    if (card) { card.classList.add('dragging'); card.style.boxShadow = `0 10px 28px rgba(0,0,0,0.2), 0 0 0 2px ${accent()}`; }
+    document.getElementById('footer').innerHTML = `<span style="color:${accent()}">↕ DRAG TO REORDER — RELEASE TO DROP</span>`;
+    document.getElementById('cat-hint').textContent = 'release to drop ↕';
+  }, 380);
+}
+
+function onTouchMove(e) {
+  const dy = Math.abs(e.touches[0].clientY - startY);
+  if (!dragging) { if (dy > 6) clearTimeout(pressTimer); return; }
+  e.preventDefault();
+  const over = hitIndex(e.touches[0].clientY);
+  if (over !== null && over !== dropIdx) {
+    const prev = document.getElementById(`card-${dropIdx}`);
+    if (prev) { prev.classList.remove('drop-target'); prev.style.borderTopColor = 'transparent'; }
+    dropIdx = over;
+    const next = document.getElementById(`card-${dropIdx}`);
+    if (next && dropIdx !== dragIdx) { next.classList.add('drop-target'); next.style.borderTopColor = accent(); }
+  }
+}
+
+function onTouchEnd() {
+  clearTimeout(pressTimer);
+  if (dragging && dragIdx !== null && dropIdx !== null && dragIdx !== dropIdx) {
+    const lst = [...getList()];
+    const [item] = lst.splice(dragIdx, 1);
+    lst.splice(dropIdx, 0, item);
+    setList(lst);
+  }
+  dragIdx = null; dropIdx = null; dragging = false;
+  document.body.style.overflow = '';
+  document.getElementById('footer').innerHTML = 'TAP 🔊 TO HEAR · TAP COPY TO PASTE';
+  document.getElementById('cat-hint').textContent = 'hold & drag to reorder';
+  renderList();
+}
+
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+
+init();
+</script>
+</body>
+</html>
