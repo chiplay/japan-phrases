@@ -1,0 +1,31 @@
+version: 1
+components:
+  - name: CategoryTabStrip
+    selector: "#tabs"
+    source: index.html
+    description: Horizontal emoji tabs for phrase categories; buttons are created from ICONS in script.
+    memory:
+      - "Each tab is a .tab-btn with data-cat set to the category name; label is a single emoji from the ICONS map (e.g. Greetings uses whatever emoji is configured for that key)."
+      - "During local dev, the service worker caches ./ and ./index.html cache-first. If HTML changes do not appear after reload, bump CACHE_NAME in sw.js or load index.html with a query string so the request bypasses the stale cache entry."
+
+  - name: CategoryTab
+    selector: "button.tab-btn"
+    source: index.html
+    description: One category tab; onclick calls setCategory with data-cat value.
+    children:
+      - name: category-tab-label
+        selector: "button.tab-btn"
+
+  - name: CategoryBar
+    selector: "#cat-bar"
+    source: index.html
+    description: Strip under tabs showing active category icon, name, and reorder hint.
+    children:
+      - name: CategoryIcon
+        selector: "#cat-icon"
+        memory:
+          - "Shows the emoji for the active category; initial markup matches Greetings until setCategory runs."
+      - name: CategoryTitle
+        selector: "#cat-name"
+      - name: ReorderHint
+        selector: "#cat-hint"
